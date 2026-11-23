@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Net.Security;
 using System.Security.Authentication;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,12 @@ namespace SmtpServer.IO
 {
     internal sealed class SecurableDuplexPipe : ISecurableDuplexPipe
     {
+#if NET5_0_OR_GREATER
+        // Creating the context builds the certificate chain, so it is created once per server certificate and reused
+        // for every TLS session. The weak keys let a replaced certificate (and its context) be collected.
+        static readonly ConditionalWeakTable<X509Certificate2, SslStreamCertificateContext> CertificateContexts = new ConditionalWeakTable<X509Certificate2, SslStreamCertificateContext>();
+#endif
+
         readonly Action _disposeAction;
         Stream _stream;
         bool _disposed;
@@ -36,13 +43,18 @@ namespace SmtpServer.IO
             var stream = clientCertificateRequired ? new SslStream(_stream, true, remoteCertificateValidationCallback) : new SslStream(_stream, true);
 
 #if NET5_0_OR_GREATER
-            if (intermediateCertificates != null && intermediateCertificates.Count > 0 && certificate is X509Certificate2 serverCertificate)
+            if (intermediateCertificates != null && intermediateCertificates.Count > 0)
             {
+                if (!(certificate is X509Certificate2 serverCertificate))
+                {
+                    throw new ArgumentException("The intermediate certificates can only be sent with an X509Certificate2 server certificate.", nameof(certificate));
+                }
+
                 // The certificate context makes SslStream send the intermediate certificates too. offline: true builds the
                 // chain from the given certificates only, without downloading missing ones.
                 var options = new SslServerAuthenticationOptions
                 {
-                    ServerCertificateContext = SslStreamCertificateContext.Create(serverCertificate, intermediateCertificates, offline: true),
+                    ServerCertificateContext = CertificateContexts.GetValue(serverCertificate, leaf => SslStreamCertificateContext.Create(leaf, intermediateCertificates, offline: true)),
                     ClientCertificateRequired = clientCertificateRequired,
                     EnabledSslProtocols = protocols,
                     CertificateRevocationCheckMode = X509RevocationMode.Online,

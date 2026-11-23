@@ -126,9 +126,10 @@ namespace SmtpServer
         /// </summary>
         /// <param name="value">The server's certificate to use when starting a TLS session.</param>
         /// <param name="intermediateCertificates">The intermediate certificates sent together with the server's certificate,
-        /// so clients that validate the certificate chain can build it. Only supported on .NET 5 or later.</param>
+        /// so clients that validate the certificate chain can build it. Only supported on .NET 5 or later, ignored on .NET Standard 2.0.</param>
         /// <returns>A EndpointDefinitionBuilder to continue building on.</returns>
-        public EndpointDefinitionBuilder Certificate(X509Certificate value, X509Certificate2Collection intermediateCertificates)
+        /// <remarks>The caller owns the certificates and must keep them alive (not disposed) while the server is running.</remarks>
+        public EndpointDefinitionBuilder Certificate(X509Certificate2 value, X509Certificate2Collection intermediateCertificates)
         {
             _setters.Add(options => options.IntermediateCertificates = intermediateCertificates);
 
