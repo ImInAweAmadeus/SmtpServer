@@ -5,7 +5,7 @@
     <LangVersion>8.0</LangVersion>
     <AssemblyName>SmtpServer</AssemblyName>
     <RootNamespace>SmtpServer</RootNamespace>
-    <Version>10.0.1</Version>
+    <Version>10.1.0</Version>
     <Description>.NET SmtpServer</Description>
     <Authors>Cain O'Sullivan</Authors>
     <Company />
@@ -15,10 +15,12 @@
     <PackageTags>smtp smtpserver smtp server</PackageTags>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <AssemblyVersion>10.0.0</AssemblyVersion>
-    <FileVersion>10.0.0</FileVersion>
-    <PackageReleaseNotes>Version 10.0.1
-- Fixed a bug that could cause a failure to recognize commands when using a large number of recipients.
+    <AssemblyVersion>10.1.0</AssemblyVersion>
+    <FileVersion>10.1.0</FileVersion>
+    <PackageReleaseNotes>Version 10.1.0
+- Added a net10.0 target.
+- Added EndpointDefinitionBuilder.Certificate(certificate, intermediateCertificates) to send the intermediate certificates in the TLS handshake (net10.0 only).
+- Breaking: IEndpointDefinition.IntermediateCertificates and a new intermediateCertificates parameter on ISecurableDuplexPipe.UpgradeAsync.
 </PackageReleaseNotes>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -40,8 +42,9 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.IO.Pipelines" Version="4.7.2" />
+  <!-- System.IO.Pipelines is part of the shared framework on net10.0 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.IO.Pipelines" Version="10.0.15" />
   </ItemGroup>
 
 </Project>
